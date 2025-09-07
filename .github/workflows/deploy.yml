@@ -3,25 +3,28 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # Mantenha 'main' ou mude para 'master'
+      - main
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  # O primeiro 'job' (trabalho) sobe o seu arquivo como um artefato.
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Build and Upload artifact
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './'  # O ponto indica que ele deve subir a pasta raiz do seu projeto
+          path: './'
 
-  # O segundo 'job' (trabalho) pega o artefato e faz o deploy.
   deploy:
     environment:
       name: github-pages
