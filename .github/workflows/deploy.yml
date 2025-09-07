@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # ou 'master', dependendo do nome da sua branch principal
+      - main  # Altere para 'master' se for o nome da sua branch principal
 
 jobs:
   build-and-deploy:
@@ -15,4 +15,4 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'  # Isso diz para a ação do GitHub Actions subir o conteúdo da pasta raiz do seu projeto
+          path: '.'  # O ponto indica que o GitHub deve publicar a pasta raiz do seu projeto
