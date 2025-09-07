@@ -16,10 +16,10 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload artifact
+      - name: Build and Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'  # O ponto indica que ele deve subir a pasta raiz do seu projeto
+          path: './'  # O ponto indica que ele deve subir a pasta raiz do seu projeto
 
   # O segundo 'job' (trabalho) pega o artefato e faz o deploy.
   deploy:
