@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>CSSprite Cutter</title>
@@ -78,8 +78,9 @@
       cursor: pointer;
       font-weight: bold;
       box-shadow: 3px 3px 0 #000;
+      transition: all 0.2s ease;
     }
-    .file-box label:hover {
+    .file-box label:hover, .file-box label:active {
       transform: translate(-2px, -2px);
       box-shadow: 5px 5px 0 #000;
     }
@@ -90,7 +91,6 @@
     .file-box input[type="file"] {
       display: none;
     }
-
     /* Modal */
     #modal {
       position: fixed;
@@ -121,43 +121,46 @@
       cursor: pointer;
       font-weight: bold;
       box-shadow: 3px 3px 0 #000;
+      transition: all 0.2s ease;
     }
-    button:hover {
+    button:hover, button:active {
       transform: translate(-2px, -2px);
       box-shadow: 5px 5px 0 #000;
     }
-
-    @keyframes highlight {
-      0% { background-color: yellow; }
-      100% { background-color: transparent; }
+    .line {
+      position: relative;
+      margin-bottom: 10px;
+      padding-right: 25px;
     }
-    .highlight {
-      animation: highlight 1s ease-out;
+    .delete-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      background: red;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0 5px;
     }
-
     @media (max-width: 768px) {
-      #container {
-        flex-direction: column;
-      }
-      #output {
-        order: 2;
-        max-height: 200px;
-      }
-      #canvasWrapper {
-        max-height: 50vh;
-      }
+      #container { flex-direction: column; }
+      #output { order: 2; max-height: 200px; }
+      #canvasWrapper { max-height: 50vh; }
     }
   </style>
 </head>
 <body>
-  <h1>CSSprite Cutter</h1>
+  <h1 id="title">CSSprite Cutter</h1>
   
   <div id="controls">
     <div class="file-box">
-      <label for="fileInput">Escolher arquivo</label>
-      <span id="fileName">Nenhum arquivo selecionado</span>
+      <label for="fileInput" id="chooseFileLabel">Choose File</label>
+      <span id="fileName">No file selected</span>
       <input type="file" id="fileInput" accept="image/*">
     </div>
+    <button id="translateBtn">Translate</button>
+    <button id="clearBtn">Clear</button>
   </div>
 
   <div id="container">
@@ -170,15 +173,59 @@
   <!-- Modal -->
   <div id="modal">
     <div id="modalContent">
-      <p>Digite o nome da classe CSS:</p>
+      <p id="modalText">Enter CSS class name:</p>
       <input type="text" id="classNameInput" placeholder="sprite1">
       <br>
-      <button id="confirmName">Confirmar</button>
-      <button id="cancelName">Cancelar</button>
+      <button id="confirmName">Confirm</button>
+      <button id="cancelName">Cancel</button>
     </div>
   </div>
   
   <script>
+    const translations = {
+      "en": {
+        chooseFile: "Choose File",
+        noFile: "No file selected",
+        enterClass: "Enter CSS class name:",
+        confirm: "Confirm",
+        cancel: "Cancel",
+        loadFileMsg: "Load an image file first",
+        clear: "Clear"
+      },
+      "pt": {
+        chooseFile: "Escolher arquivo",
+        noFile: "Nenhum arquivo selecionado",
+        enterClass: "Digite o nome da classe CSS:",
+        confirm: "Confirmar",
+        cancel: "Cancelar",
+        loadFileMsg: "Carregue um arquivo de imagem primeiro",
+        clear: "Limpar"
+      }
+    };
+
+    let currentLang = "en";
+
+    function applyTranslations(lang) {
+      const t = translations[lang];
+      document.getElementById("chooseFileLabel").textContent = t.chooseFile;
+      document.getElementById("fileName").textContent = t.noFile;
+      document.getElementById("modalText").textContent = t.enterClass;
+      document.getElementById("confirmName").textContent = t.confirm;
+      document.getElementById("cancelName").textContent = t.cancel;
+      document.getElementById("clearBtn").textContent = t.clear;
+    }
+
+    document.getElementById("translateBtn").addEventListener("click", () => {
+      const lang = prompt("Enter language code (en, pt, es, fr...)", currentLang);
+      if (lang && translations[lang]) {
+        currentLang = lang;
+        applyTranslations(lang);
+      } else if (lang) {
+        alert("Language not available.");
+      }
+    });
+
+    // === resto do código original com melhorias ===
     const fileInput = document.getElementById('fileInput');
     const fileName = document.getElementById('fileName');
     const canvas = document.getElementById('canvas');
@@ -189,6 +236,7 @@
     const classNameInput = document.getElementById('classNameInput');
     const confirmName = document.getElementById('confirmName');
     const cancelName = document.getElementById('cancelName');
+    const clearBtn = document.getElementById('clearBtn');
     
     let img = new Image();
     let imgLoaded = false;
@@ -204,7 +252,6 @@
       const file = e.target.files[0];
       if (!file) return;
       fileName.textContent = file.name;
-
       const reader = new FileReader();
       reader.onload = evt => {
         img.onload = () => {
@@ -222,10 +269,8 @@
       const canvasHeight = canvas.clientHeight || 500;
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
-
       const imgRatio = img.width / img.height;
       const canvasRatio = canvasWidth / canvasHeight;
-
       if (imgRatio > canvasRatio) {
         scale = canvasWidth / img.width;
       } else {
@@ -244,7 +289,7 @@
 
     canvas.addEventListener('mousedown', e => {
       if (!imgLoaded) {
-        showMessage("Carregue um arquivo de imagem primeiro");
+        alert(translations[currentLang].loadFileMsg);
         return;
       }
       drawing = true;
@@ -259,14 +304,12 @@
       const rect = canvas.getBoundingClientRect();
       endX = e.clientX - rect.left;
       endY = e.clientY - rect.top;
-
       lastSelection = {
         x: Math.min(startX, endX),
         y: Math.min(startY, endY),
         w: Math.abs(endX - startX),
         h: Math.abs(endY - startY)
       };
-
       if (lastSelection.w > 0 && lastSelection.h > 0) {
         classNameInput.value = "sprite" + (document.querySelectorAll("#output .line").length + 1);
         modal.style.display = "flex";
@@ -280,26 +323,33 @@
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-
       ctx.strokeStyle = "red";
       ctx.lineWidth = 2;
       ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
     });
 
-    confirmName.addEventListener('click', () => {
+    function addCodeBlock() {
       const className = classNameInput.value.trim() || "sprite";
       const {x, y, w, h} = lastSelection;
-
-      output.innerHTML += 
-`<div class="line highlight">/* ${className}.png */
+      const div = document.createElement("div");
+      div.className = "line";
+      div.innerHTML = 
+`/* ${className}.png */
 .${className} {
   width: ${w}px;
   height: ${h}px;
   background: url("spritesheet.png") -${Math.round(x)}px -${Math.round(y)}px;
-}</div>\n\n`;
-
+}`;
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "x";
+      delBtn.className = "delete-btn";
+      delBtn.onclick = () => div.remove();
+      div.appendChild(delBtn);
+      output.appendChild(div);
       modal.style.display = "none";
-    });
+    }
+
+    confirmName.addEventListener('click', addCodeBlock);
 
     cancelName.addEventListener('click', () => {
       modal.style.display = "none";
@@ -307,10 +357,22 @@
       drawImage();
     });
 
-    function showMessage(msg) {
-      modal.style.display = "flex";
-      document.getElementById('modalContent').innerHTML = `<p>${msg}</p><button onclick="modal.style.display='none'">OK</button>`;
-    }
+    clearBtn.addEventListener('click', () => {
+      output.innerHTML = "";
+    });
+
+    // atalhos de teclado
+    document.addEventListener('keydown', e => {
+      if (modal.style.display === "flex") {
+        if (e.key === "Enter") {
+          addCodeBlock();
+        } else if (e.key === "Escape") {
+          modal.style.display = "none";
+          lastSelection = null;
+          drawImage();
+        }
+      }
+    });
 
     window.addEventListener('resize', () => {
       if (imgLoaded) {
