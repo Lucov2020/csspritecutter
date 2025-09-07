@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>CSSprite Cutter</title>
+  <style>
+    body { 
+      font-family: sans-serif; 
+      background: #fff; 
+      color: #000; 
+      margin: 0; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center;
+    }
+    h1 {
+      background: #ff8939;
+      padding: 10px 20px;
+      border: 3px solid #000;
+      box-shadow: 4px 4px 0 #000;
+      font-size: 1.5rem;
+      margin: 10px 0;
+    }
+    #container {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 1200px;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    #canvasWrapper {
+      flex: 2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 3px solid #000;
+      background: #eee;
+      position: relative;
+      width: 100%;
+      max-height: 70vh;
+    }
+    #canvas {
+      width: 100%;
+      height: auto;
+      max-height: 70vh;
+      display: block;
+    }
+    #output {
+      flex: 1;
+      background: #f4f4f4; 
+      border: 3px solid #000;
+      padding: 10px;
+      white-space: pre; 
+      font-size: 0.7rem;
+      overflow-y: auto;
+    }
+    #controls {
+      margin: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    /* Custom file input */
+    .file-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 3px solid #000;
+      padding: 5px 10px;
+      box-shadow: 3px 3px 0 #000;
+      background: #fff;
+    }
+    .file-box label {
+      background: #ffb98a;
+      border: 3px solid #000;
+      padding: 8px 15px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 3px 3px 0 #000;
+    }
+    .file-box label:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 5px 5px 0 #000;
+    }
+    .file-box span {
+      font-size: 0.9rem;
+      color: #000;
+    }
+    .file-box input[type="file"] {
+      display: none;
+    }
+
+    /* Modal */
+    #modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+    #modalContent {
+      background: #fff;
+      border: 3px solid #000;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 5px 5px 0 #000;
+    }
+    #modal input {
+      margin: 10px 0;
+      padding: 5px;
+      border: 2px solid #000;
+    }
+    button {
+      background: #ff8939;
+      border: 3px solid #000;
+      padding: 8px 15px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 3px 3px 0 #000;
+    }
+    button:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 5px 5px 0 #000;
+    }
+
+    @keyframes highlight {
+      0% { background-color: yellow; }
+      100% { background-color: transparent; }
+    }
+    .highlight {
+      animation: highlight 1s ease-out;
+    }
+
+    @media (max-width: 768px) {
+      #container {
+        flex-direction: column;
+      }
+      #output {
+        order: 2;
+        max-height: 200px;
+      }
+      #canvasWrapper {
+        max-height: 50vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>CSSprite Cutter</h1>
+  
+  <div id="controls">
+    <div class="file-box">
+      <label for="fileInput">Escolher arquivo</label>
+      <span id="fileName">Nenhum arquivo selecionado</span>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+  </div>
+
+  <div id="container">
+    <div id="canvasWrapper">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div id="output"></div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal">
+    <div id="modalContent">
+      <p>Digite o nome da classe CSS:</p>
+      <input type="text" id="classNameInput" placeholder="sprite1">
+      <br>
+      <button id="confirmName">Confirmar</button>
+      <button id="cancelName">Cancelar</button>
+    </div>
+  </div>
+  
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const output = document.getElementById('output');
+    
+    const modal = document.getElementById('modal');
+    const classNameInput = document.getElementById('classNameInput');
+    const confirmName = document.getElementById('confirmName');
+    const cancelName = document.getElementById('cancelName');
+    
+    let img = new Image();
+    let imgLoaded = false;
+    let startX, startY, endX, endY;
+    let drawing = false;
+    let lastSelection = null;
+
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      fileName.textContent = file.name;
+
+      const reader = new FileReader();
+      reader.onload = evt => {
+        img.onload = () => {
+          imgLoaded = true;
+          fitImageToCanvas();
+          drawImage();
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function fitImageToCanvas() {
+      const canvasWidth = canvas.clientWidth;
+      const canvasHeight = canvas.clientHeight || 500;
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+
+      const imgRatio = img.width / img.height;
+      const canvasRatio = canvasWidth / canvasHeight;
+
+      if (imgRatio > canvasRatio) {
+        scale = canvasWidth / img.width;
+      } else {
+        scale = canvasHeight / img.height;
+      }
+      offsetX = (canvasWidth - img.width * scale) / 2;
+      offsetY = (canvasHeight - img.height * scale) / 2;
+    }
+
+    function drawImage() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (imgLoaded) {
+        ctx.drawImage(img, offsetX, offsetY, img.width * scale, img.height * scale);
+      }
+    }
+
+    canvas.addEventListener('mousedown', e => {
+      if (!imgLoaded) {
+        showMessage("Carregue um arquivo de imagem primeiro");
+        return;
+      }
+      drawing = true;
+      const rect = canvas.getBoundingClientRect();
+      startX = e.clientX - rect.left;
+      startY = e.clientY - rect.top;
+    });
+
+    canvas.addEventListener('mouseup', e => {
+      if (!drawing) return;
+      drawing = false;
+      const rect = canvas.getBoundingClientRect();
+      endX = e.clientX - rect.left;
+      endY = e.clientY - rect.top;
+
+      lastSelection = {
+        x: Math.min(startX, endX),
+        y: Math.min(startY, endY),
+        w: Math.abs(endX - startX),
+        h: Math.abs(endY - startY)
+      };
+
+      if (lastSelection.w > 0 && lastSelection.h > 0) {
+        classNameInput.value = "sprite" + (document.querySelectorAll("#output .line").length + 1);
+        modal.style.display = "flex";
+        classNameInput.focus();
+      }
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (!drawing) return;
+      drawImage();
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
+    });
+
+    confirmName.addEventListener('click', () => {
+      const className = classNameInput.value.trim() || "sprite";
+      const {x, y, w, h} = lastSelection;
+
+      output.innerHTML += 
+`<div class="line highlight">/* ${className}.png */
+.${className} {
+  width: ${w}px;
+  height: ${h}px;
+  background: url("spritesheet.png") -${Math.round(x)}px -${Math.round(y)}px;
+}</div>\n\n`;
+
+      modal.style.display = "none";
+    });
+
+    cancelName.addEventListener('click', () => {
+      modal.style.display = "none";
+      lastSelection = null;
+      drawImage();
+    });
+
+    function showMessage(msg) {
+      modal.style.display = "flex";
+      document.getElementById('modalContent').innerHTML = `<p>${msg}</p><button onclick="modal.style.display='none'">OK</button>`;
+    }
+
+    window.addEventListener('resize', () => {
+      if (imgLoaded) {
+        fitImageToCanvas();
+        drawImage();
+      }
+    });
+  </script>
+</body>
+</html>
