@@ -308,13 +308,18 @@
             };
         }
 
+        // <<-- CORREÇÃO AQUI: getTouchPos considerando escala do canvas em relação ao CSS exibido
         function getTouchPos(touch) {
             const rect = canvas.getBoundingClientRect();
+            // escala entre coordenadas internas do canvas e pixels exibidos
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
             return {
-                x: touch.clientX - rect.left,
-                y: touch.clientY - rect.top
+                x: (touch.clientX - rect.left) * scaleX,
+                y: (touch.clientY - rect.top) * scaleY
             };
         }
+        // -->> fim da correção
 
         function startDraw(x, y) {
             if (!imgLoaded) return;
