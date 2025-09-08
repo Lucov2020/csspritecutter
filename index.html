@@ -46,17 +46,16 @@
             background: #e9e9e9;
             position: relative;
             width: 100%;
-            max-height: 70vh;
             border-radius: 8px;
             box-shadow: 4px 4px 0 #000;
             overflow: hidden;
+            padding: 5px;
         }
         
         #canvas {
-            width: 100%;
-            height: auto;
-            max-height: 70vh;
             display: block;
+            max-width: 100%;
+            height: auto;
         }
 
         #demoPlaceholder {
@@ -160,7 +159,6 @@
             background: darkred;
         }
 
-        /* Botões */
         button {
             background: #ff8939;
             border: 3px solid #000;
@@ -177,7 +175,6 @@
             box-shadow: 5px 5px 0 #000;
         }
 
-        /* Modais */
         .modal {
             position: fixed;
             top: 0;
@@ -209,19 +206,18 @@
         }
 
         @media (max-width: 768px) {
-  #container {
-    flex-direction: column;
-  }
-  #canvasWrapper {
-    order: 1;
-    max-height: 50vh;
-  }
-  #output {
-    order: 2;
-    max-height: 200px;
-    width: 100%;
-  }
-}
+          #container {
+            flex-direction: column;
+          }
+          #canvasWrapper {
+            order: 1;
+          }
+          #output {
+            order: 2;
+            width: 100%;
+            max-height: 200px;
+          }
+        }
     </style>
 </head>
 <body>
@@ -238,7 +234,6 @@
 
     <div id="container">
         <div id="canvasWrapper">
-            <!-- Placeholder para vídeo de demonstração -->
             <div id="demoPlaceholder">			
                 <p>Clique em "Escolher arquivo" para começar a cortar.</p>
             </div>
@@ -247,7 +242,7 @@
         <div id="output"></div>
     </div>
 
-    <!-- Modal para nome da classe -->
+    <!-- Modal nome classe -->
     <div id="classNameModal" class="modal">
         <div class="modal-content">
             <p id="modalText">Digite o nome da classe CSS:</p>
@@ -258,7 +253,7 @@
         </div>
     </div>
 
-    <!-- Modal para mensagens gerais -->
+    <!-- Modal mensagens -->
     <div id="messageModal" class="modal">
         <div class="modal-content">
             <p id="messageText"></p>
@@ -267,91 +262,6 @@
     </div>
 
     <script>
-        const translations = {
-            "en": {
-                chooseFile: "Choose File",
-                noFile: "No file selected",
-                enterClass: "Enter CSS class name:",
-                confirm: "Confirm",
-                cancel: "Cancel",
-                loadFileMsg: "Load an image file first",
-                clear: "Clear"
-            },
-            "pt": {
-                chooseFile: "Escolher arquivo",
-                noFile: "Nenhum arquivo selecionado",
-                enterClass: "Digite o nome da classe CSS:",
-                confirm: "Confirmar",
-                cancel: "Cancelar",
-                loadFileMsg: "Carregue um arquivo de imagem primeiro",
-                clear: "Limpar"
-            }
-        };
-
-        let currentLang = "pt";
-
-        // Funções do modal
-        function showMessageModal(text) {
-            document.getElementById('messageText').textContent = text;
-            document.getElementById('messageModal').style.display = "flex";
-        }
-
-        function showPromptModal(text, placeholder, callback) {
-            const modal = document.getElementById('classNameModal');
-            const input = document.getElementById('classNameInput');
-            const confirmBtn = document.getElementById('confirmName');
-            const cancelBtn = document.getElementById('cancelName');
-            
-            document.getElementById('modalText').textContent = text;
-            input.value = placeholder || '';
-            modal.style.display = "flex";
-            input.focus();
-
-            const onConfirm = () => {
-                callback(input.value);
-                modal.style.display = "none";
-                confirmBtn.removeEventListener('click', onConfirm);
-                cancelBtn.removeEventListener('click', onCancel);
-            };
-
-            const onCancel = () => {
-                modal.style.display = "none";
-                confirmBtn.removeEventListener('click', onConfirm);
-                cancelBtn.removeEventListener('click', onCancel);
-            };
-
-            confirmBtn.addEventListener('click', onConfirm);
-            cancelBtn.addEventListener('click', onCancel);
-        }
-
-        // Aplicações de tradução
-        function applyTranslations(lang) {
-            const t = translations[lang];
-            document.getElementById("chooseFileLabel").textContent = t.chooseFile;
-            document.getElementById("fileName").textContent = t.noFile;
-            document.getElementById("confirmName").textContent = t.confirm;
-            document.getElementById("cancelName").textContent = t.cancel;
-            document.getElementById("clearBtn").textContent = t.clear;
-            document.getElementById('modalText').textContent = t.enterClass;
-        }
-
-        // Eventos
-        document.getElementById("translateBtn").addEventListener("click", () => {
-            showPromptModal("Digite o código do idioma (en, pt...)", currentLang, (lang) => {
-                if (lang && translations[lang]) {
-                    currentLang = lang;
-                    applyTranslations(lang);
-                } else if (lang) {
-                    showMessageModal("Idioma não disponível.");
-                }
-            });
-        });
-
-        document.getElementById('messageClose').addEventListener('click', () => {
-            document.getElementById('messageModal').style.display = "none";
-        });
-
-        // === Código original com melhorias ===
         const fileInput = document.getElementById('fileInput');
         const fileName = document.getElementById('fileName');
         const canvas = document.getElementById('canvas');
@@ -365,20 +275,17 @@
         let drawing = false;
         let lastSelection = null;
 
-        let scale = 1;
-        let offsetX = 0;
-        let offsetY = 0;
-
         fileInput.addEventListener('change', e => {
             const file = e.target.files[0];
             if (!file) return;
             fileName.textContent = file.name;
-            demoPlaceholder.style.display = "none"; // Esconde o placeholder
+            demoPlaceholder.style.display = "none";
             const reader = new FileReader();
             reader.onload = evt => {
                 img.onload = () => {
                     imgLoaded = true;
-                    fitImageToCanvas();
+                    canvas.width = img.width + 10; // borda pequena
+                    canvas.height = img.height + 10;
                     drawImage();
                 };
                 img.src = evt.target.result;
@@ -386,46 +293,41 @@
             reader.readAsDataURL(file);
         });
 
-        function fitImageToCanvas() {
-            const canvasWidth = canvas.clientWidth;
-            const canvasHeight = canvas.clientHeight || 500;
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
-            const imgRatio = img.width / img.height;
-            const canvasRatio = canvasWidth / canvasHeight;
-            if (imgRatio > canvasRatio) {
-                scale = canvasWidth / img.width;
-            } else {
-                scale = canvasHeight / img.height;
-            }
-            offsetX = (canvasWidth - img.width * scale) / 2;
-            offsetY = (canvasHeight - img.height * scale) / 2;
-        }
-
         function drawImage() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (imgLoaded) {
-                ctx.drawImage(img, offsetX, offsetY, img.width * scale, img.height * scale);
+                ctx.drawImage(img, 5, 5); // 5px de margem
             }
         }
 
-        canvas.addEventListener('mousedown', e => {
-            if (!imgLoaded) {
-                showMessageModal(translations[currentLang].loadFileMsg);
-                return;
-            }
-            drawing = true;
+        function getMousePos(evt) {
             const rect = canvas.getBoundingClientRect();
-            startX = e.clientX - rect.left;
-            startY = e.clientY - rect.top;
-        });
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
 
-        canvas.addEventListener('mouseup', e => {
+        function getTouchPos(touch) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            };
+        }
+
+        function startDraw(x, y) {
+            if (!imgLoaded) return;
+            drawing = true;
+            startX = x;
+            startY = y;
+        }
+
+        function endDraw(x, y) {
             if (!drawing) return;
             drawing = false;
-            const rect = canvas.getBoundingClientRect();
-            endX = e.clientX - rect.left;
-            endY = e.clientY - rect.top;
+            endX = x;
+            endY = y;
             lastSelection = {
                 x: Math.min(startX, endX),
                 y: Math.min(startY, endY),
@@ -435,20 +337,50 @@
             if (lastSelection.w > 0 && lastSelection.h > 0) {
                 document.getElementById('classNameModal').style.display = "flex";
             }
-        });
+        }
 
-        canvas.addEventListener('mousemove', e => {
+        function moveDraw(x, y) {
             if (!drawing) return;
             drawImage();
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
             ctx.strokeStyle = "red";
             ctx.lineWidth = 2;
-            ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
+            ctx.strokeRect(startX, startY, x - startX, y - startY);
+        }
+
+        // mouse
+        canvas.addEventListener('mousedown', e => {
+            const pos = getMousePos(e);
+            startDraw(pos.x, pos.y);
+        });
+        canvas.addEventListener('mouseup', e => {
+            const pos = getMousePos(e);
+            endDraw(pos.x, pos.y);
+        });
+        canvas.addEventListener('mousemove', e => {
+            const pos = getMousePos(e);
+            moveDraw(pos.x, pos.y);
         });
 
-        function addCodeBlock() {
+        // touch
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            const pos = getTouchPos(e.touches[0]);
+            startDraw(pos.x, pos.y);
+        });
+        canvas.addEventListener('touchend', e => {
+            e.preventDefault();
+            const pos = getTouchPos(e.changedTouches[0]);
+            endDraw(pos.x, pos.y);
+        });
+        canvas.addEventListener('touchmove', e => {
+            e.preventDefault();
+            const pos = getTouchPos(e.touches[0]);
+            moveDraw(pos.x, pos.y);
+        });
+
+        // confirmar seleção
+        document.getElementById('confirmName').addEventListener('click', () => {
+            if (!lastSelection) return;
             const className = document.getElementById('classNameInput').value.trim() || "sprite";
             const { x, y, w, h } = lastSelection;
             const div = document.createElement("div");
@@ -466,9 +398,7 @@
             div.appendChild(delBtn);
             output.appendChild(div);
             document.getElementById('classNameModal').style.display = "none";
-        }
-
-        document.getElementById('confirmName').addEventListener('click', addCodeBlock);
+        });
 
         document.getElementById('cancelName').addEventListener('click', () => {
             document.getElementById('classNameModal').style.display = "none";
@@ -480,26 +410,9 @@
             output.innerHTML = "";
         });
 
-        document.addEventListener('keydown', e => {
-            if (document.getElementById('classNameModal').style.display === "flex") {
-                if (e.key === "Enter") {
-                    addCodeBlock();
-                } else if (e.key === "Escape") {
-                    document.getElementById('classNameModal').style.display = "none";
-                    lastSelection = null;
-                    drawImage();
-                }
-            }
+        document.getElementById('messageClose').addEventListener('click', () => {
+            document.getElementById('messageModal').style.display = "none";
         });
-
-        window.addEventListener('resize', () => {
-            if (imgLoaded) {
-                fitImageToCanvas();
-                drawImage();
-            }
-        });
-
-        applyTranslations(currentLang);
     </script>
 </body>
 </html>
